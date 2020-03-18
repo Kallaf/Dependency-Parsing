@@ -113,10 +113,14 @@ class ParserModel(nn.Module):
         ###     Index select: https://pytorch.org/docs/stable/torch.html#torch.index_select
         ###     Gather: https://pytorch.org/docs/stable/torch.html#torch.gather
         ###     View: https://pytorch.org/docs/stable/tensors.html#torch.Tensor.view
-        
-        x = torch.stack([torch.index_select(self.embeddings, 0, i) for i in w])
-        x = x.view(x.size()[0],x.size()[1]*x.size()[2])
-
+        # >>> a = [[1,2,3], [4,5,6], [7,8,9]]
+        # >>> [x for xs in a for x in xs]
+        # [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        indexes = [ii for i in w for ii in i]
+        indexes_torch = torch.tensor(indexes)
+        x = torch.index_select(self.embeddings, 0, indexes_torch) 
+        x = x.view(w.size()[0],w.size()[1]*self.embeddings.size(1))
+        # print(x.size())
         ### END YOUR CODE
         return x
 
@@ -153,7 +157,7 @@ class ParserModel(nn.Module):
         ###     ReLU: https://pytorch.org/docs/stable/nn.html?highlight=relu#torch.nn.functional.relu
         
         x = self.embedding_lookup(w)
-        h = torch.relu(torch.mm(x,self.embed_to_hidden_weight) + self.embed_to_hidden_bias)
+        h = self.dropout(torch.relu(torch.mm(x,self.embed_to_hidden_weight) + self.embed_to_hidden_bias))
         logits= torch.mm(h,self.hidden_to_logits_weight) + self.hidden_to_logits_bias 
         ### END YOUR CODE
         return logits
